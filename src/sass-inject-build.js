@@ -73,7 +73,7 @@ export default function(loadObject) {
             }
 
             options.style = sass.style.compressed;
-            options.indentedSyntax = load.address.endsWith('.sass');
+            options.indentedSyntax = options.indentedSyntax ? options.indentedSyntax : load.address.endsWith('.sass');
             options.importer = {
                 urlBase,
             };
@@ -99,11 +99,11 @@ export default function(loadObject) {
                     }
                 } else {
                     log('warn', 'Stacklite :: github:KevCJones/plugin-scss/sass-inject-build.js -> npm:sass.js', true);
-
-                    // log error when formatted property is undefined
+                    
                     var message = result.formatted ? result.formatted : result.error;
 
                     log('error', message, true);
+
                     reject(message);
                 }
             });

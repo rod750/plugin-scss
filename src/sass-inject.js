@@ -36,7 +36,7 @@ const sassImporter = (request, done) => {
     resolvePath(request).then(resolvedUrl => {
             resolved = resolvedUrl;
             const partialPath = resolved.replace(/\/([^/]*)$/, '/_$1');
-            return reqwest(partialPath);
+            return request(partialPath);
         })
         .then(resp => {
             // In Cordova Apps the response is the raw XMLHttpRequest
@@ -69,27 +69,35 @@ const compile = scss => {
                 && isEmpty(scss.content.responseText)) {
                     return resolve('');
             }
+
+            log('warn', scss);
+
+            scss.content = scss.content.replace(/@import ([a-z_-]+)/g, '@import _$1');
+
+            log('warn', scss.content);
+
             sass.compile(scss.content, scss.options, result => {
+
                 if (result.status === 0) {
+                    // credit : plugin-sass = screendriver + co - ty.
                     if (!isUndefined(System.sassPluginOptions)
                         && System.sassPluginOptions.autoprefixer) {
-                            if (!result.text) {
-                                log('error', System.meta.loadAddress + ' did not parse!');
-                                resolve(escape(' '));
-                                return;
-                            }
-                            postcss([autoprefixer]).process(result.text).then(({
-                                css,
-                            }) => {
+                        postcss([autoprefixer])
+                            .process(result.text)
+                            .then(({ css }) => {
                                 resolve(escape(css));
                             });
                     } else {
                         resolve(escape(result.text));
                     }
                 } else {
-                    log('warn', 'Stacklite :: github:KevCJones/plugin-scss/sass-inject-build.js -> npm:sass.js');
-                    log('error', result.formatted);
-                    reject(result.formatted);
+                    log('warn', 'Stacklite :: github:KevCJones/plugin-scss/sass-inject-build.js -> npm:sass.js', true);
+                    
+                    var message = result.formatted ? result.formatted : result.error;
+
+                    log('error', message, true);
+
+                    reject(message);
                 }
             });
         });
@@ -109,10 +117,12 @@ export default load => {
         && !isUndefined(System.sassPluginOptions.sassOptions)) {
         options = cloneDeep(System.sassPluginOptions.sassOptions);
     }
-    options.indentedSyntax = indentedSyntax;
+    options.indentedSyntax = options.indentedSyntax ? options.indentedSyntax : indentedSyntax;
     options.importer = {
         urlBase,
     };
+
+    log('info', options);
 
     // load initial scss file
     return reqwest(load.address)
